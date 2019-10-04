@@ -1,30 +1,114 @@
 ---
 title: "Lab 3"
-author: "Ethan Wanlass"
+author: "Ethan Wanlass, Haley Bruan"
 date: "9/26/2019"
 output: html_document
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+## Background
+
+The General Social Survey (GSS) has been run by NORC every other year since 1972 to keep track of current opinions across the United States. We are working with an excerpt of the dataset that covers years 1972 to 2016. The variable names along with a brief description are as follows: 
+
+| Variable      | Description   |    
+| ------------- |:-------------:| 
+| Year          | Year for this respondent | 
+| Age           | Age of respondent | 
+| Sex           | Sex of respondent     | 
+|....           | .....      | 
+
+Now it's important to understand what each column stands for. You can find a codebook with explanations for each of the variables at https://gssdataexplorer.norc.org/
+
+## Data Cleaning 
+
+Initial exploration revealed that some data processing was needed before we could proceed with further visualization. All missing values were encoded with 'NA' as follows:
+```{r}
+HAPPY <- readRDS("HAPPY.rds")
+names(HAPPY) = tolower(names(HAPPY))
+
+na_before = length(which(is.na(HAPPY)))
+
+HAPPY$happy = replace(HAPPY$happy, HAPPY$happy %in% c("IAP", "DK","NA"),NA)
+HAPPY$year = replace(HAPPY$year, HAPPY$year %in% c("IAP", "DK","NA"), NA)
+HAPPY$age = replace(HAPPY$age, HAPPY$age %in% c("IAP", "DK","NA"), NA)
+HAPPY$sex = replace(HAPPY$sex, HAPPY$sex %in% c("IAP", "DK","NA"), NA)
+HAPPY$marital = replace(HAPPY$marital, HAPPY$marital %in% c("IAP", "DK","NA"), NA)
+HAPPY$degree = replace(HAPPY$degree, HAPPY$degree %in% c("IAP", "DK","NA"), NA)
+HAPPY$finrela = replace(HAPPY$finrela, HAPPY$finrela %in% c("IAP", "DK","NA"), NA)
+HAPPY$health = replace(HAPPY$health, HAPPY$health %in% c("IAP", "DK","NA"), NA)
+HAPPY$wtssall = replace(HAPPY$wtssall, HAPPY$wtssall %in% c("IAP", "DK","NA"), NA)
+HAPPY$partyid = replace(HAPPY$partyid, HAPPY$partyid %in% c("IAP", "DK","NA"), NA)
+HAPPY$polviews = replace(HAPPY$polviews, HAPPY$polviews %in% c("IAP", "DK","NA"), NA)
+
+na_after = length(which(is.na(HAPPY)))
+
+number_changed = na_after - na_before
+number_changed
 ```
 
-## R Markdown
+In total there were `30272 number of missing values. 
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+Variables were also cast into the correct type in order to ease data visualization. This was done by casting the variables to factors or numeric depending on the type of data.
+```{r}
+HAPPY$age[HAPPY$age == "89 OR OLDER"] = "89"
+HAPPY$age = as.numeric(HAPPY$age)
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
+HAPPY$happy = as.factor(HAPPY$happy)
+HAPPY$year = as.numeric(HAPPY$year)
+HAPPY$sex = as.factor(HAPPY$sex)
+HAPPY$degree = as.factor(HAPPY$degree)
+HAPPY$marital = as.factor(HAPPY$marital)
+HAPPY$finrela = as.factor(HAPPY$finrela)
+HAPPY$health = as.factor(HAPPY$health)
+HAPPY$wtssall = as.numeric(HAPPY$wtssall)
+HAPPY$partyid = as.factor(HAPPY$partyid)
+HAPPY$polviews = as.factor(HAPPY$polviews)
+str(HAPPY)
 ```
 
-## Including Plots
-
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
+Factors were also organized into meaningful order. Marital was ordered by . Happy, finrela and health were organized from worst to best. Party ID and Political views were organize according to the stereotypical depiciation of liberal/Democrats being on the left and conservative/Republicans being on the right with the extremes being on their respective sides.  
+```{r}
+HAPPY$marital = factor(HAPPY$marital, levels = c("NEVER MARRIED", "MARRIED", "DIVORCED", "SEPERATED", "WIDOWED"))
+HAPPY$finrela = factor(HAPPY$finrela, levels = c("FAR BELOW AVERAGE", "BELOW AVERAGE", "AVERAGE", "ABOVE AVERAGE", "FAR ABOVE AVERAGE"))
+HAPPY$health = factor(HAPPY$health, levels = c("POOR", "FAIR", "GOOD", "EXCELLENT"))
+HAPPY$partyid = factor(HAPPY$partyid, levels = c("STRONG DEMOCRAT", "NOT STR DEMOCRAT", "IND,NEAR DEM", "INDEPENDENT", "IND,NEAR REP", "NOT STR REPUBLICAN", "STRONG REPUBLICAN", "OTHER PARTY", NA))
+HAPPY$polviews = factor(HAPPY$polviews, levels = c("EXTREMELY LIBERAL", "LIBERAL", "SLIGHTLY LIBERAL", "MODERATE", "SLIGHTLY CONSERVATIVE", "CONSERVATIVE", "EXTREMELY CONSERVATIVE"))
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+## Data Exploration 
+
+Two variables of interest are `age` and `political parties. Their distributions are as follow: 
+```{r}
+library(ggplot2)
+
+ggplot(HAPPY, aes(age)) + geom_histogram(binwidth = .5) + labs(title = 'Age Distribution')+ scale_x_continuous(name = "Age",breaks=c(10,20,30,40,50,60,70,80,90))
+ggplot(HAPPY, aes(partyid)) + geom_bar(fill = 'green4') + coord_flip() + ylab("Party ID") + xlab("Count") + labs(title = "Distribution of Political Parties")
+
+ggplot(HAPPY, aes(partyid,age)) + geom_boxplot() + coord_flip() + ylab("Party ID") + xlab("Count") + labs(title = "Political Parties compared to Age")
+```
+
+Looking at the Age distribution, we can determine that most common age of the participants in the survey were between 25 and 35. After 35 is there is a slow decline in the average participants. Additionally, there is a large gap between before 20 and 20. At 89 there is a large influx of participants because of the data recorded anything after or at 89 in the same category.
+
+Looking at the Political Parties distribution we can see that not strong democrat was the most surveyed group. Moreover, more democrats were surveyed in general over other political parties. Regardless, all of the categories had over 5000 surveyed with the exception of other party. Thus, we may be cautious about making conclusions outside of other party relationships. 
+
+From the boxplot comparing political parties and age we can see that the median age is pretty comparable between all of the parties. We can see a slight relationship that older age is more likely to attribute to a stronger political party affiliation. 
+
+```{r}    
+library(ggmosaic)
+HAPPY$happy = droplevels(HAPPY$happy)
+HAPPY$marital = droplevels(HAPPY$marital)
+HAPPY$health = droplevels(HAPPY$health)
+HAPPY$sex = droplevels(HAPPY$sex)
+levels(HAPPY$sex)
+
+ggplot(HAPPY)+geom_mosaic(aes(x =product(sex),fill = happy),offset = 0,na.rm = TRUE, divider = mosaic())+facet_grid(health~marital) + labs(title = 'Happiness compared to Marital Status, Health and Sex') + xlab(NULL) + ylab(NULL)
+
+```
+
+In this mosaic we are comparing Happiness in regards to health, sex and marital status. We can see a slight relationship that being married leads to people being happier. We can also see a clear trend that better health leads to happier people. Sex did not appear to have any consistent pattern in regards to happiness. Of the three, health seemed to have the most impact on happiness. 
+
+## Conclusions
+
+From our distributions charts and boxplot we can conlude that the data seems to have a pretty consistent distribution of both age and political parties. The only exceptions being before age 20 and political party outside of democrat, independent or republican. There is a slight bias towards democratic voters and between ages 25 to 35, but not enough that it should have an impact.
+
+From our mosaic we can conclude that health and being married have the greatest positive relationship towards happiness in regards, to health, marital status and sex. Further study could be done in these areas to see if this correlation has any causation or is just coincidence.  ` 
